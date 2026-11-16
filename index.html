@@ -3,24 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Application & Multi-User AI CV Tailor</title>
-    <!-- Tailwind CSS -->
+    <title>Job Application & AI CV Tailor - Multiuser</title>
+    <!-- Tailwind CSS untuk styling modern -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
 
-    <!-- Modal Login / Kode Akses Pengguna (Muncul Pertama Kali Jika Belum Set) -->
+    <!-- Modal Login & Register (Auth) -->
     <div id="authModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h2 class="text-xl font-bold text-slate-900 mb-1">🔐 Masukkan Kode Akses Pengguna</h2>
-            <p class="text-xs text-slate-500 mb-4">Gunakan kode unik (contoh: nama Anda) agar data loker dan CV Anda terisolasi dan tidak tercampur dengan pengguna lain.</p>
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kode / ID Pengguna</label>
-                    <input type="text" id="inputUserCode" required placeholder="Cth: syeril, Budi, dkk" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h2 id="authTitle" class="text-xl font-bold text-slate-900">🔐 Masuk ke Akun Anda</h2>
+                <div class="text-xs">
+                    <button id="authSwitchBtn" onclick="toggleAuthMode()" class="text-indigo-600 font-medium hover:underline">Belum punya akun? Daftar</button>
                 </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition shadow">
-                    Masuk ke Ruang Kerja Saya
+            </div>
+            
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div id="nameFieldContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Lengkap</label>
+                    <input type="text" id="authNama" placeholder="Cth: Syeril Putri" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Username</label>
+                    <input type="text" id="authUsername" required placeholder="Cth: syeril" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition shadow">
+                    Masuk
                 </button>
             </form>
         </div>
@@ -32,10 +45,10 @@
             <div>
                 <div class="flex items-center gap-2">
                     <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded-md border border-indigo-200">User: <span id="displayUserCode" class="font-bold"></span></span>
-                    <button onclick="logoutUser()" class="text-xs text-rose-600 hover:underline">Ganti User / Keluar</button>
+                    <button onclick="logoutUser()" class="text-xs text-rose-600 hover:underline">Keluar / Ganti Akun</button>
                 </div>
                 <h1 class="text-3xl font-bold text-slate-900 mt-1">🚀 Job Application & AI CV Tailor</h1>
-                <p class="text-slate-600">Lacak lamaran loker, kelola CV mentahan, dan sesuaikan dengan syarat perusahaan.</p>
+                <p class="text-slate-600">Lacak lamaran kerja, kelola CV mentahan, dan sesuaikan otomatis dengan syarat perusahaan.</p>
             </div>
             <div class="flex flex-wrap gap-3">
                 <button onclick="openProfileModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-4 py-2.5 rounded-xl shadow transition">
@@ -63,20 +76,20 @@
                         </tr>
                     </thead>
                     <tbody id="lokerTableBody" class="divide-y divide-slate-200 text-sm">
-                        <!-- Data dimasukkan via JS -->
+                        <!-- Data dinamis via JS -->
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Modal Form Profil & CV Mentahan -->
+    <!-- Modal Profil & CV Mentahan -->
     <div id="profileModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden justify-center items-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold text-slate-900 mb-2">👤 Informasi Personal & CV Mentahan</h2>
-            <p class="text-xs text-slate-500 mb-4">Basis data master khusus untuk pengguna <span id="profileUserBadge" class="font-bold text-indigo-600"></span>.</p>
+            <p class="text-xs text-slate-500 mb-4">Basis data master khusus untuk <span id="profileUserBadge" class="font-bold text-indigo-600"></span>.</p>
             
-            <form id="profileForm" onsubmit="saveProfile(event)" class="space-y-4">
+            <form onsubmit="saveProfile(event)" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Lengkap</label>
@@ -89,15 +102,15 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Ringkasan Profil Utama</label>
-                    <textarea id="profRingkasan" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ringkasan profesional..."></textarea>
+                    <textarea id="profRingkasan" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Tulis ringkasan profesional Anda..."></textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Pengalaman Kerja Mentahan</label>
-                    <textarea id="profPengalaman" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Deskripsikan riwayat pekerjaan Anda..."></textarea>
+                    <textarea id="profPengalaman" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Admin Akuntansi di CV X (2022-2026)..."></textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Keahlian & Tools (Skills)</label>
-                    <input type="text" id="profKeahlian" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Excel, Google Sheets, Administrasi">
+                    <input type="text" id="profKeahlian" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Excel, Google Sheets, Administrasi Keuangan">
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -108,7 +121,7 @@
         </div>
     </div>
 
-    <!-- Modal Form Tambah/Edit Loker -->
+    <!-- Modal Tambah/Edit Loker -->
     <div id="lokerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden justify-center items-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <h2 id="modalTitle" class="text-xl font-bold text-slate-900 mb-4">Tambah Lowongan Pekerjaan</h2>
@@ -195,12 +208,15 @@
     </div>
 
     <script>
-        const SHEETDB_API = 'https://sheetdb.io/api/v1/YOUR_SHEETDB_API_URL';
+        const BASE_URL = 'https://sheetdb.io/api/v1/w8ks98r2le9pa';
+        const USERS_API = `${BASE_URL}?sheet=Users`;
+        const LOKER_API = `${BASE_URL}?sheet=Loker`;
+
         let currentUser = localStorage.getItem('active_user_code') || "";
+        let isRegisterMode = false;
         let allData = [];
         let activeAiIndex = null;
 
-        // Cek autentikasi kode pengguna saat halaman dimuat
         window.onload = function() {
             if (currentUser) {
                 document.getElementById('authModal').classList.add('hidden');
@@ -212,28 +228,67 @@
             }
         };
 
-        function handleLogin(event) {
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('authTitle').innerText = isRegisterMode ? "📝 Daftar Akun Baru" : "🔐 Masuk ke Akun Anda";
+            document.getElementById('authSubmitBtn').innerText = isRegisterMode ? "Daftar Sekarang" : "Masuk";
+            document.getElementById('authSwitchBtn').innerText = isRegisterMode ? "Sudah punya akun? Masuk" : "Belum punya akun? Daftar";
+            document.getElementById('nameFieldContainer').classList.toggle('hidden', !isRegisterMode);
+        }
+
+        async function handleAuthSubmit(event) {
             event.preventDefault();
-            const code = document.getElementById('inputUserCode').value.trim();
-            if (!code) return;
-            
-            currentUser = code;
-            localStorage.setItem('active_user_code', currentUser);
-            
-            document.getElementById('authModal').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            document.getElementById('displayUserCode').innerText = currentUser;
-            fetchLoker();
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
+            const namaLengkap = document.getElementById('authNama').value.trim();
+
+            if (!username || !password) return;
+
+            try {
+                if (isRegisterMode) {
+                    // Cek apakah username sudah ada
+                    const res = await fetch(`${USERS_API}/search?username=${encodeURIComponent(username)}`);
+                    const existing = await res.json();
+                    if (existing.length > 0) {
+                        alert("Username sudah digunakan, silakan gunakan username lain.");
+                        return;
+                    }
+                    // Simpan akun baru ke Sheet Users
+                    await fetch(USERS_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: [{ username, password, namaLengkap, createdAt: new Date().toISOString() }] })
+                    });
+                    alert("Registrasi berhasil! Silakan masuk.");
+                    toggleAuthMode();
+                } else {
+                    // Login verifikasi ke Sheet Users
+                    const res = await fetch(`${USERS_API}/search?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+                    const users = await res.json();
+                    if (users.length > 0) {
+                        currentUser = username;
+                        localStorage.setItem('active_user_code', currentUser);
+                        document.getElementById('authModal').classList.add('hidden');
+                        document.getElementById('mainApp').classList.remove('hidden');
+                        document.getElementById('displayUserCode').innerText = currentUser;
+                        fetchLoker();
+                    } else {
+                        alert("Username atau password salah!");
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Terjadi kesalahan koneksi ke server.");
+            }
         }
 
         function logoutUser() {
-            if (confirm("Ingin keluar dari ruang kerja ini?")) {
+            if (confirm("Ingin keluar dari akun ini?")) {
                 localStorage.removeItem('active_user_code');
                 location.reload();
             }
         }
 
-        // Pengelolaan Profil per User (disimpan terpisah di localStorage berbasis user code)
         function getProfile() {
             const saved = localStorage.getItem(`user_profile_${currentUser}`);
             if (saved) return JSON.parse(saved);
@@ -241,7 +296,7 @@
                 nama: currentUser,
                 kontak: `${currentUser}@email.com`,
                 ringkasan: "Profesional berdedikasi.",
-                pengalaman: "Tuliskan pengalaman kerja Anda di sini...",
+                pengalaman: "Tuliskan riwayat pekerjaan Anda...",
                 keahlian: "Keahlian utama Anda..."
             };
         }
@@ -278,14 +333,13 @@
             document.getElementById('profileModal').classList.add('hidden');
         }
 
-        // Ambil data loker dari SheetDB khusus milik currentUser (menggunakan SheetDB search API `?userCode=...`)
         async function fetchLoker() {
             try {
-                const response = await fetch(`${SHEETDB_API}/search?userCode=${encodeURIComponent(currentUser)}`);
+                const response = await fetch(`${LOKER_API}/search?userCode=${encodeURIComponent(currentUser)}`);
                 allData = await response.json();
                 renderTable(allData);
             } catch (error) {
-                console.error("Gagal mengambil data:", error);
+                console.error("Gagal mengambil data loker:", error);
             }
         }
 
@@ -294,7 +348,7 @@
             tbody.innerHTML = '';
 
             if (!Array.isArray(data) || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">Belum ada data lowongan pekerjaan untuk kode pengguna <b>${currentUser}</b>.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">Belum ada data lowongan pekerjaan untuk akun <b>${currentUser}</b>.</td></tr>`;
                 return;
             }
 
@@ -350,7 +404,7 @@
             event.preventDefault();
             const rowId = document.getElementById('formRowId').value;
             const newData = {
-                userCode: currentUser, // Menyimpan tag kepemilikan user
+                userCode: currentUser,
                 id: rowId !== "" ? rowId : 'id_' + Date.now(),
                 posisi: document.getElementById('posisi').value,
                 perusahaan: document.getElementById('perusahaan').value,
@@ -364,13 +418,13 @@
             };
 
             if (rowId !== "") {
-                await fetch(`${SHEETDB_API}/id/${rowId}`, {
+                await fetch(`${LOKER_API}/id/${rowId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ data: newData })
                 });
             } else {
-                await fetch(SHEETDB_API, {
+                await fetch(LOKER_API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ data: [newData] })
@@ -399,7 +453,7 @@
 
         async function deleteLoker(id) {
             if (confirm("Hapus data lowongan ini?")) {
-                await fetch(`${SHEETDB_API}/id/${id}`, { method: 'DELETE' });
+                await fetch(`${LOKER_API}/id/${id}`, { method: 'DELETE' });
                 fetchLoker();
             }
         }
