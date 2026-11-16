@@ -236,7 +236,7 @@
             document.getElementById('nameFieldContainer').classList.toggle('hidden', !isRegisterMode);
         }
 
-        async function handleAuthSubmit(event) {
+            async function handleAuthSubmit(event) {
             event.preventDefault();
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value.trim();
@@ -262,12 +262,15 @@
                     alert("Registrasi berhasil! Silakan masuk.");
                     toggleAuthMode();
                 } else {
-                    // Login verifikasi ke Sheet Users
-                    const res = await fetch(`${USERS_API}/search?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+                    // AMBIL DATA BERDASARKAN USERNAME SAJA (Lebih stabil di SheetDB)
+                    const res = await fetch(`${USERS_API}/search?username=${encodeURIComponent(username)}`);
                     const users = await res.json();
-                    if (users.length > 0) {
-                        currentUser = username;
+                    
+                    // Cek apakah user ada dan password-nya cocok
+                    if (users.length > 0 && String(users[0].password).trim() === String(password)) {
+                        currentUser = users[0].username; // Ambil username asli dari sheet
                         localStorage.setItem('active_user_code', currentUser);
+                        
                         document.getElementById('authModal').classList.add('hidden');
                         document.getElementById('mainApp').classList.remove('hidden');
                         document.getElementById('displayUserCode').innerText = currentUser;
