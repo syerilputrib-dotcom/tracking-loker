@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Application & AI CV Tailor - Multiuser</title>
-    <!-- Tailwind CSS untuk styling modern -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
 
-    <!-- Modal Login & Register (Auth) -->
+    <!-- Modal Login & Register -->
     <div id="authModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
@@ -19,7 +19,7 @@
                 </div>
             </div>
             
-            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div id="nameFieldContainer" class="hidden">
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Lengkap</label>
                     <input type="text" id="authNama" placeholder="Cth: Syeril Putri" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500">
@@ -54,7 +54,7 @@
                 <button onclick="openProfileModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-4 py-2.5 rounded-xl shadow transition">
                     👤 Edit Profil & CV Mentahan
                 </button>
-                <button onclick="openLokerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-xl shadow-lg transition">
+                <button onclick="openLokerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-lg transition">
                     + Tambah Loker Baru
                 </button>
             </div>
@@ -87,7 +87,7 @@
     <div id="profileModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden justify-center items-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold text-slate-900 mb-2">👤 Informasi Personal & CV Mentahan</h2>
-            <p class="text-xs text-slate-500 mb-4">Basis data master khusus untuk <span id="profileUserBadge" class="font-bold text-indigo-600"></span>.</p>
+            <p class="text-xs text-slate-500 mb-4">Data ini tersimpan aman di akun Google Sheets Anda (<span id="profileUserBadge" class="font-bold text-indigo-600"></span>).</p>
             
             <form onsubmit="saveProfile(event)" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -102,7 +102,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Ringkasan Profil Utama</label>
-                    <textarea id="profRingkasan" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Tulis ringkasan profesional Anda..."></textarea>
+                    <textarea id="profRingkasan" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Tulis ringkasan profesional..."></textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Pengalaman Kerja Mentahan</label>
@@ -115,7 +115,7 @@
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onclick="closeProfileModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 transition">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">Simpan Profil</button>
+                    <button type="submit" class="px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">Simpan & Backup ke Sheets</button>
                 </div>
             </form>
         </div>
@@ -211,18 +211,20 @@
         const BASE_URL = 'https://sheetdb.io/api/v1/w8ks98r2le9pa';
         const USERS_API = `${BASE_URL}?sheet=Users`;
         const LOKER_API = `${BASE_URL}?sheet=Loker`;
+        const PROFILES_API = `${BASE_URL}?sheet=Profiles`;
 
         let currentUser = localStorage.getItem('active_user_code') || "";
         let isRegisterMode = false;
         let allData = [];
         let activeAiIndex = null;
+        let currentProfile = { nama: "", kontak: "", ringkasan: "", pengalaman: "", keahlian: "" };
 
         window.onload = function() {
             if (currentUser) {
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('mainApp').classList.remove('hidden');
                 document.getElementById('displayUserCode').innerText = currentUser;
-                fetchLoker();
+                loadUserData();
             } else {
                 document.getElementById('authModal').classList.remove('hidden');
             }
@@ -236,7 +238,7 @@
             document.getElementById('nameFieldContainer').classList.toggle('hidden', !isRegisterMode);
         }
 
-            async function handleAuthSubmit(event) {
+        async function handleAuthSubmit(event) {
             event.preventDefault();
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value.trim();
@@ -246,33 +248,38 @@
 
             try {
                 if (isRegisterMode) {
-                    // Simpan akun baru ke Sheet Users tanpa ribet
                     await fetch(USERS_API, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ data: [{ username, password: password || "-", namaLengkap: namaLengkap || username, createdAt: new Date().toISOString() }] })
                     });
+                    
+                    // Buat profil default kosong di sheet Profiles untuk user baru
+                    await fetch(PROFILES_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: [{ userCode: username, nama: namaLengkap || username, kontak: "", ringkasan: "", pengalaman: "", keahlian: "" }] })
+                    });
+
                     alert("Registrasi berhasil! Silakan masuk.");
                     toggleAuthMode();
                 } else {
-                    // MODE MASUK LANGSUNG (BYPASS VALIDASI PASSWORD JIKA SHEETDB KADANG SUSAH DIBACA)
                     currentUser = username;
                     localStorage.setItem('active_user_code', currentUser);
                     
                     document.getElementById('authModal').classList.add('hidden');
                     document.getElementById('mainApp').classList.remove('hidden');
                     document.getElementById('displayUserCode').innerText = currentUser;
-                    fetchLoker();
+                    loadUserData();
                 }
             } catch (err) {
                 console.error(err);
-                // Tetap biarkan masuk walau fetch gagal agar Anda tidak terhambat
                 currentUser = username;
                 localStorage.setItem('active_user_code', currentUser);
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('mainApp').classList.remove('hidden');
                 document.getElementById('displayUserCode').innerText = currentUser;
-                fetchLoker();
+                loadUserData();
             }
         }
 
@@ -283,40 +290,70 @@
             }
         }
 
-        function getProfile() {
-            const saved = localStorage.getItem(`user_profile_${currentUser}`);
-            if (saved) return JSON.parse(saved);
-            return {
-                nama: currentUser,
-                kontak: `${currentUser}@email.com`,
-                ringkasan: "Profesional berdedikasi.",
-                pengalaman: "Tuliskan riwayat pekerjaan Anda...",
-                keahlian: "Keahlian utama Anda..."
-            };
+        // Ambil data profil dari Google Sheets (tab Profiles)
+        async function loadUserData() {
+            try {
+                const res = await fetch(`${PROFILES_API}/search?userCode=${encodeURIComponent(currentUser)}`);
+                const profiles = await res.json();
+                if (Array.isArray(profiles) && profiles.length > 0) {
+                    currentProfile = profiles[0];
+                } else {
+                    currentProfile = { userCode: currentUser, nama: currentUser, kontak: "", ringkasan: "", pengalaman: "", keahlian: "" };
+                }
+            } catch (e) {
+                console.error("Gagal memuat profil:", e);
+            }
+            fetchLoker();
         }
 
-        function saveProfile(event) {
+        async function saveProfile(event) {
             event.preventDefault();
-            const profile = {
+            const updatedProfile = {
+                userCode: currentUser,
                 nama: document.getElementById('profNama').value,
                 kontak: document.getElementById('profKontak').value,
                 ringkasan: document.getElementById('profRingkasan').value,
                 pengalaman: document.getElementById('profPengalaman').value,
                 keahlian: document.getElementById('profKeahlian').value
             };
-            localStorage.setItem(`user_profile_${currentUser}`, JSON.stringify(profile));
-            alert("Profil berhasil disimpan!");
-            closeProfileModal();
+
+            try {
+                // Cek apakah data profil sudah ada di sheet Profiles
+                const res = await fetch(`${PROFILES_API}/search?userCode=${encodeURIComponent(currentUser)}`);
+                const existing = await res.json();
+
+                if (Array.isArray(existing) && existing.length > 0) {
+                    // Update (PUT) jika sudah ada
+                    await fetch(`${PROFILES_API}/userCode/${encodeURIComponent(currentUser)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: updatedProfile })
+                    });
+                } else {
+                    // Insert (POST) jika belum ada
+                    await fetch(PROFILES_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: [updatedProfile] })
+                    });
+                }
+
+                currentProfile = updatedProfile;
+                alert("Profil berhasil disimpan dan dibackup ke Google Sheets!");
+                closeProfileModal();
+            } catch (err) {
+                console.error(err);
+                alert("Gagal menyimpan profil ke server.");
+            }
         }
 
         function openProfileModal() {
-            const p = getProfile();
             document.getElementById('profileUserBadge').innerText = currentUser;
-            document.getElementById('profNama').value = p.nama;
-            document.getElementById('profKontak').value = p.kontak;
-            document.getElementById('profRingkasan').value = p.ringkasan;
-            document.getElementById('profPengalaman').value = p.pengalaman;
-            document.getElementById('profKeahlian').value = p.keahlian;
+            document.getElementById('profNama').value = currentProfile.nama || "";
+            document.getElementById('profKontak').value = currentProfile.kontak || "";
+            document.getElementById('profRingkasan').value = currentProfile.ringkasan || "";
+            document.getElementById('profPengalaman').value = currentProfile.pengalaman || "";
+            document.getElementById('profKeahlian').value = currentProfile.keahlian || "";
 
             document.getElementById('profileModal').classList.remove('hidden');
             document.getElementById('profileModal').classList.add('flex');
@@ -476,10 +513,9 @@
                 return;
             }
 
-            const profile = getProfile();
             const item = allData[activeAiIndex];
 
-            const tailoredCv = `• Ringkasan Profesional Disesuaikan (${currentUser}):\nSelaras dengan posisi ${item.posisi} di ${item.perusahaan} yang menuntut kriteria: "${syarat}". Mengangkat keahlian: ${profile.keahlian}.\n\n• Pengalaman Kerja Master:\n${profile.pengalaman}`;
+            const tailoredCv = `• Ringkasan Profesional Disesuaikan (${currentUser}):\nSelaras dengan posisi ${item.posisi} di ${item.perusahaan} yang menuntut kriteria: "${syarat}". Mengangkat keahlian: ${currentProfile.keahlian}.\n\n• Pengalaman Kerja Master:\n${currentProfile.pengalaman}`;
             const tailoredPortfolio = `• Fokus Portofolio untuk ${item.posisi}:\nMenonjolkan relevansi pengalaman dan penyesuaian proyek dengan standar kebutuhan ${item.perusahaan}.`;
 
             document.getElementById('aiCvContent').innerText = tailoredCv;
